@@ -6,7 +6,7 @@
   <title>インサイダーゲーム</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="theme-color" content="#FAF9F5">
+  <meta name="theme-color" content="#FAF8F5">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -23,14 +23,16 @@
             card: '#FFFFFF',
             ink: '#2B2D42',
             sub: '#6B7280',
-            line: '#E8E5DF',
+            line: '#ECE8E1',
             pastel: {
               yellow: '#FFF3BF',
               yellowHover: '#FFE999',
-              orange: '#FFE3C2',
-              orangeHover: '#FFD39B',
-              warm: '#F4EFEA',
-              active: '#EFE7DE'
+              yellowBorder: '#F5DE87',
+              orange: '#FFE7D1',
+              orangeHover: '#FFD7B3',
+              orangeBorder: '#F8C89A',
+              warm: '#F5F0E8',
+              active: '#EFE7DC'
             }
           }
         }
@@ -51,7 +53,7 @@
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
     .card-shadow {
-      box-shadow: 0 4px 20px -2px rgba(60, 50, 40, 0.06), 0 2px 6px -1px rgba(60, 50, 40, 0.04);
+      box-shadow: 0 4px 16px -2px rgba(43, 45, 66, 0.05), 0 2px 6px -1px rgba(43, 45, 66, 0.03);
     }
     .btn-press:active {
       transform: translateY(1px);
@@ -71,7 +73,7 @@
       </div>
     </header>
 
-    <!-- Main Dynamic Container -->
+    <!-- Main Dynamic View Container -->
     <main id="mainContainer" class="flex-1 flex flex-col justify-center my-4 overflow-y-auto hide-scrollbar">
       <!-- Dynamic Views Injected via JS -->
     </main>
@@ -102,73 +104,65 @@
       }
     }
 
-    function soundBeepSoft() { playTone(659.25, 0.1); }
+    function soundBeepSoft() { playTone(587.33, 0.1); }
     function soundNotice() {
       playTone(523.25, 0.1);
       setTimeout(() => playTone(659.25, 0.15), 100);
     }
     function soundTimeUp() {
-      playTone(440, 0.18);
-      setTimeout(() => playTone(330, 0.3), 180);
+      playTone(440, 0.16);
+      setTimeout(() => playTone(349.23, 0.28), 160);
     }
 
+    // 小学生でも知っている身近で一般的な自然な名詞のみを厳選
     const WORD_LIST = [
-      // 身の回りの物・日用品
-      "パトカー","大学","電柱","東京都","キリン","信号機","冷蔵庫","シャンプー","鉛筆","図書館",
-      "富士山","自転車","新幹線","消しゴム","スマートフォン","歯ブラシ","傘","目覚まし時計","スニーカー","マスク",
-      "水筒","財布","爪切り","鍵","鏡","タオル","段ボール","洗濯機","扇風機","カレンダー",
-      "ティッシュペーパー","枕","メガネ","ノートパソコン","イヤホン","リモコン","スリッパ","マグカップ","腕時計","モバイルバッテリー",
-      "筆箱","ボールペン","ホッチキス","セロハンテープ","画鋲","アイロン","掃除機","加湿器","空気清浄機","体重計",
-      "電気ケトル","まな板","包丁","フライパン","おたま","計量カップ","ゴミ箱","灰皿","マッチ","ライター",
-      "綿棒","絆創膏","体温計","目薬","リップクリーム","ハンドクリーム","香水","ネックレス","指輪","ピアス",
-      "ベルト","ネクタイ","手袋","マフラー","帽子","靴下","パジャマ","カーテン","クッション","絨毯",
-      "本棚","ベッド","ソファー","ダイニングテーブル","姿見","植木鉢","じょうろ","電球","懐中電灯","延長コード",
-      "充電器","卓上カレンダー","印鑑","朱肉","電卓","水筒","クリアファイル","封筒","段ボール箱","虫眼鏡",
-      "画用紙","クレヨン","絵の具","彫刻刀","分度器","コンパス","定規","ランドセル","名刺入れ","キーホルダー",
+      // 家具・家電
+      "冷蔵庫", "洗濯機", "テレビ", "ベッド", "机", "イス", "ソファ", "時計", "電子レンジ", "掃除機",
+      "扇風機", "エアコン", "鏡", "こたつ", "本棚", "カーテン", "ゴミ箱", "ドライヤー", "電気スタンド", "タンス",
+      "クッション", "絨毯", "まくら", "布団", "アイロン", "炊飯器", "オーブントースター", "電気ケトル", "姿見",
 
-      // 食べ物・飲み物
-      "ラーメン","カレーライス","寿司","オムライス","たこ焼き","ハンバーガー","ピザ","うどん","そば","焼き肉",
-      "おにぎり","納豆","味噌汁","ステーキ","餃子","唐揚げ","天ぷら","すき焼き","しゃぶしゃぶ","焼き鳥",
-      "パスタ","グラタン","ドリア","サンドイッチ","フライドポテト","ホットドッグ","親子丼","カツ丼","海鮮丼","麻婆豆腐",
-      "炒飯","春巻き","小籠包","酢豚","エビチリ","回鍋肉","そうめん","焼きそば","たい焼き","大福",
-      "どら焼き","カステラ","羊羹","わらび餅","せんべい","ショートケーキ","チョコレート","プリン","シュークリーム","アイスクリーム",
-      "クレープ","パンケーキ","マカロン","パフェ","バウムクーヘン","食パン","クロワッサン","メロンパン","フランスパン","ドーナツ",
-      "コーヒー","紅茶","緑茶","烏龍茶","コーラ","オレンジジュース","リンゴジュース","牛乳","ココア","麦茶",
-      "ミネラルウォーター","サイダー","トマトジュース","スポーツドリンク","ヨーグルト","チーズ","バター","豆腐","こんにゃく","ちくわ",
+      // 動物・生き物
+      "イヌ", "ネコ", "キリン", "ゾウ", "ライオン", "トラ", "パンダ", "コアラ", "ペンギン", "ウサギ",
+      "ハムスター", "サル", "ゴリラ", "カンガルー", "シマウマ", "カメ", "カエル", "ワニ", "クジラ", "イルカ",
+      "ラッコ", "アザラシ", "リス", "ブタ", "ウシ", "ウマ", "ヒツジ", "ヤギ", "ラクダ", "シカ",
+      "カブトムシ", "クワガタムシ", "チョウ", "トンボ", "ホタル", "アリ", "ハチ", "セミ", "カタツムリ", "金魚",
+      "サメ", "タコ", "イカ", "クラゲ", "カニ", "エビ",
 
-      // 動物・植物・自然
-      "イヌ","ネコ","パンダ","ゾウ","ライオン","トラ","コアラ","カンガルー","ゴリラ","シマウマ",
-      "カバ","サイ","ラクダ","ヒツジ","ヤギ","ウマ","ウシ","ブタ","ウサギ","リス",
-      "ハムスター","ハリネズミ","モルモット","カワウソ","アザラシ","アシカ","セイウチ","ペンギン","シロクマ","クジラ",
-      "イルカ","シャチ","サメ","タコ","イカ","クラゲ","カメ","ワニ","カエル","カブトムシ",
-      "クワガタムシ","セミ","チョウ","トンボ","ホタル","ハチ","アリ","テントウムシ","バッタ","カタツムリ",
-      "サクラ","ヒマワリ","チューリップ","バラ","アジサイ","タンポポ","アサガオ","コスモス","カーネーション","ユリ",
-      "マツ","タケ","スギ","イチョウ","カエデ","サボテン","ヤシの木","キノコ","ワカメ","コケ",
-      "エベレスト","アマゾン川","ナイル川","太平洋","日本海","琵琶湖","砂漠","洞窟","滝","火山",
-      "太陽","月","地球","火星","木星","土星","北極","南極","雲","虹",
+      // 恐竜
+      "ティラノサウルス", "トリケラトプス", "プテラノドン", "ブラキオサウルス", "ステゴサウルス",
+      "スピノサウルス", "アンキロサウルス", "モササウルス", "化石",
 
-      // 建物・乗り物・公共施設
-      "飛行機","ヘリコプター","潜水艦","宇宙船","消防車","救急車","タクシー","路線バス","オートバイ","キックボード",
-      "気球","ロープウェイ","フェリー","クルーズ船","フォークリフト","ショベルカー","ブルドーザー","トラック","ダンプカー","ヨット",
-      "東京タワー","スカイツリー","自由の女神","ピラミッド","万里の長城","エッフェル塔","凱旋門","コロッセオ","サグラダファミリア","タージマハル",
-      "コンビニ","スーパーマーケット","デパート","映画館","水族館","動物園","遊園地","プラネタリウム","博物館","美術館",
-      "市役所","警察署","消防署","郵便局","病院","薬局","銀行","学校","幼稚園","保育園",
-      "駅","空港","港","ガソリンスタンド","コインランドリー","温泉","銭湯","ホテル","旅館","キャンプ場",
-      "スキー場","ゴルフ場","ボウリング場","カラオケ店","ゲームセンター","神社","寺","教会","城","歩道橋",
-      "トンネル","高速道路","踏切","停留所","交差点","公園","展望台","ドーム球場","競技場","プール",
+      // コンビニ・食べ物・お菓子
+      "おにぎり", "サンドイッチ", "お弁当", "カップラーメン", "アイスクリーム", "プリン", "ポテトチップス", "チョコレート", "ガム", "アメ",
+      "食パン", "メロンパン", "カレーパン", "牛乳", "リンゴジュース", "オレンジジュース", "麦茶", "コーラ", "ココア",
+      "カレーライス", "ラーメン", "お寿司", "ハンバーガー", "ピザ", "フライドポテト", "オムライス", "うどん", "そば", "たこ焼き",
+      "焼きそば", "餃子", "唐揚げ", "ハンバーグ", "ホットケーキ", "クレープ", "ドーナツ", "ショートケーキ", "いちご", "バナナ",
+      "リンゴ", "みかん", "ブドウ", "スイカ", "トマト", "きゅうり", "じゃがいも", "とうもろこし",
 
-      // 職業・人物
-      "警察官","消防士","医師","看護師","パイロット","宇宙飛行士","総理大臣","弁護士","裁判官","探偵",
-      "スパイ","忍者","侍","海賊","騎士","魔法使い","漫画家","小説家","映画監督","アナウンサー",
-      "声優","料理人","パティシエ","美容師","大工","農家","漁師","駅員","車掌","飼育員",
-      "先生","教授","店長","警備員","郵便配達員","登山家","写真家","ピアニスト","指揮者","陶芸家",
+      // 職業
+      "警察官", "消防士", "お医者さん", "看護師", "先生", "コック", "パイロット", "アイドル", "ユーチューバー", "宇宙飛行士",
+      "サッカー選手", "野球選手", "花屋さん", "パン屋さん", "電車の運転士", "歌手", "漫画家", "ケーキ屋さん", "飼育員", "車掌",
 
-      // 行事・趣味・日常の言葉
-      "お正月","節分","ひな祭り","お花見","子供の日","七夕","お盆","ハロウィン","クリスマス","大晦日",
-      "誕生日","結婚式","運動会","文化祭","卒業式","入学式","修学旅行","遠足","健康診断","避難訓練",
-      "じゃんけん","かくれんぼ","鬼ごっこ","トランプ","チェス","将棋","オセロ","麻雀","すごろく","パズル",
-      "折り紙","あやとり","なわとび","竹馬","かるた","福笑い","凧揚げ","コマ回し","ヨーヨー","けん玉",
-      "キャンプ","バーベキュー","釣り","登山","天体観測","写真撮影","読書","映画鑑賞","園芸","日曜大工"
+      // 人・家族・身近な関係
+      "お父さん", "お母さん", "お兄ちゃん", "お姉ちゃん", "弟", "妹", "おじいちゃん", "おばあちゃん", "赤ちゃん", "友達",
+      "クラスメイト", "校長先生",
+
+      // 乗り物・街にあるもの
+      "パトカー", "救急車", "消防車", "バス", "タクシー", "自転車", "新幹線", "飛行機", "船", "ヘリコプター",
+      "電柱", "信号機", "ポスト", "公園", "すべり台", "ブランコ", "砂場", "シーソー", "自動販売機", "横断歩道",
+      "駅", "踏切", "トンネル", "橋", "学校", "病院", "交番", "消防署", "郵便局", "動物園",
+      "水族館", "遊園地", "映画館", "図書館", "コンビニ", "スーパー", "ショッピングモール", "プール",
+
+      // 文房具・日用品
+      "鉛筆", "消しゴム", "定規", "ハサミ", "のり", "ノート", "筆箱", "ランドセル", "教科書", "色鉛筆",
+      "セロハンテープ", "ホッチキス", "クリップ", "カバン", "傘", "歯ブラシ", "タオル", "石鹸", "シャンプー", "ティッシュ",
+      "ハンカチ", "マスク", "絆創膏", "体温計", "靴", "靴下", "帽子", "水筒", "お弁当箱", "マグカップ",
+      "箸", "スプーン", "フォーク", "お皿",
+
+      // 自然・社会・誰でも知っている言葉
+      "太陽", "月", "星", "雨", "雪", "虹", "雲", "雷", "海", "山",
+      "川", "池", "島", "地球", "地球温暖化", "国境", "日本", "東京都", "富士山", "砂漠",
+      "花火", "運動会", "遠足", "夏休み", "クリスマス", "お正月", "誕生日"
     ];
 
     const state = {
@@ -200,7 +194,7 @@
         <div class="space-y-4">
           <div class="bg-card border border-line rounded-2xl p-5 card-shadow space-y-3">
             <div class="flex justify-between items-center">
-              <span class="text-sm font-bold text-ink">参加者 (${state.players.length}人)</span>
+              <span class="text-sm font-bold text-ink">参加プレイヤー (${state.players.length}人)</span>
               <span class="text-xs text-sub">4人 〜 10人</span>
             </div>
             
@@ -226,26 +220,23 @@
 
           <div class="bg-card border border-line rounded-2xl p-5 card-shadow space-y-3">
             <div class="flex justify-between items-center">
-              <span class="text-sm font-bold text-ink">制限時間</span>
-              <div class="flex items-center space-x-2">
-                <select id="timeSelect" onchange="state.timeLimitMinutes = parseInt(this.value)"
-                  class="bg-pastel-warm/60 border border-line rounded-xl px-3 py-2 text-sm text-ink font-medium focus:outline-none focus:bg-white">
-                  <option value="3" ${state.timeLimitMinutes === 3 ? 'selected' : ''}>3分</option>
-                  <option value="4" ${state.timeLimitMinutes === 4 ? 'selected' : ''}>4分</option>
-                  <option value="5" ${state.timeLimitMinutes === 5 ? 'selected' : ''}>5分 (標準)</option>
-                  <option value="6" ${state.timeLimitMinutes === 6 ? 'selected' : ''}>6分</option>
-                  <option value="7" ${state.timeLimitMinutes === 7 ? 'selected' : ''}>7分</option>
-                  <option value="8" ${state.timeLimitMinutes === 8 ? 'selected' : ''}>8分</option>
-                </select>
-              </div>
+              <span class="text-sm font-bold text-ink">質問の制限時間</span>
+              <select id="timeSelect" onchange="state.timeLimitMinutes = parseInt(this.value)"
+                class="bg-pastel-warm/60 border border-line rounded-xl px-3 py-2 text-sm text-ink font-medium focus:outline-none focus:bg-white">
+                <option value="3" ${state.timeLimitMinutes === 3 ? 'selected' : ''}>3分</option>
+                <option value="4" ${state.timeLimitMinutes === 4 ? 'selected' : ''}>4分</option>
+                <option value="5" ${state.timeLimitMinutes === 5 ? 'selected' : ''}>5分 (標準)</option>
+                <option value="6" ${state.timeLimitMinutes === 6 ? 'selected' : ''}>6分</option>
+                <option value="7" ${state.timeLimitMinutes === 7 ? 'selected' : ''}>7分</option>
+              </select>
             </div>
             <div class="pt-2 border-t border-line flex justify-between text-xs text-sub">
-              <span>収録単語数</span>
-              <span class="font-medium text-ink">${WORD_LIST.length} 語 (一般名詞)</span>
+              <span>収録単語</span>
+              <span class="font-medium text-ink">${WORD_LIST.length} 語 (身近な言葉のみ)</span>
             </div>
           </div>
 
-          <button onclick="startGame()" class="w-full bg-pastel-yellow hover:bg-pastel-yellowHover text-ink font-bold py-3.5 px-4 rounded-2xl border border-line card-shadow transition btn-press text-base">
+          <button onclick="startGame()" class="w-full bg-pastel-yellow hover:bg-pastel-yellowHover text-ink font-bold py-3.5 px-4 rounded-2xl border border-pastel-yellowBorder card-shadow transition btn-press text-base">
             ゲームを開始する
           </button>
         </div>
@@ -269,10 +260,8 @@
     }
 
     function startGame() {
-      // Pick random word
       state.currentWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
 
-      // Assign roles: 1 GM, 1 Insider, rest Commons
       const indices = [...Array(state.players.length).keys()].sort(() => Math.random() - 0.5);
       const gmIndex = indices[0];
       const insiderIndex = indices[1];
@@ -297,26 +286,26 @@
       container.innerHTML = `
         <div class="space-y-4">
           <div class="text-center space-y-1">
-            <span class="text-xs font-bold text-sub uppercase tracking-wider">Pass to Player</span>
+            <span class="text-xs font-bold text-sub tracking-wider">プレイヤーの確認</span>
             <h2 class="text-xl font-bold text-ink">${currentName} さん</h2>
-            <p class="text-xs text-sub">端末を受け取り、タップして確認してください</p>
+            <p class="text-xs text-sub">端末を受け取り、カードをタップしてください</p>
           </div>
 
-          <!-- Flip Card Container -->
-          <div onclick="toggleCard()" class="cursor-pointer bg-card border border-line rounded-2xl p-6 min-h-[220px] flex flex-col justify-center items-center text-center card-shadow transition-all btn-press">
+          <!-- Tap-to-flip Role Card -->
+          <div onclick="toggleCard()" class="cursor-pointer bg-card border border-line rounded-2xl p-6 min-h-[210px] flex flex-col justify-center items-center text-center card-shadow transition-all btn-press">
             ${!state.isCardOpen ? `
               <div class="space-y-2 py-4">
                 <p class="text-base font-bold text-ink">タップして役職を確認</p>
                 <p class="text-xs text-sub">周りの人に見られないよう注意してください</p>
               </div>
             ` : `
-              <div class="space-y-3 py-2 w-full animate-fadeIn">
+              <div class="space-y-3 py-2 w-full">
                 <div class="inline-block px-3 py-1 rounded-full text-xs font-bold ${
-                  role === 'GM' ? 'bg-pastel-yellow border border-line text-ink' :
-                  role === 'INSIDER' ? 'bg-pastel-orange border border-line text-ink' :
+                  role === 'GM' ? 'bg-pastel-yellow border border-pastel-yellowBorder text-ink' :
+                  role === 'INSIDER' ? 'bg-pastel-orange border border-pastel-orangeBorder text-ink' :
                   'bg-pastel-warm border border-line text-ink'
                 }">
-                  ${role === 'GM' ? 'マスター' : role === 'INSIDER' ? 'インサイダー' : '庶民'}
+                  ${role === 'GM' ? 'ゲームマスター' : role === 'INSIDER' ? 'インサイダー' : '庶民'}
                 </div>
 
                 ${(role === 'GM' || role === 'INSIDER') ? `
@@ -327,12 +316,12 @@
                 ` : `
                   <div class="pt-2">
                     <p class="text-xs text-sub leading-relaxed">
-                      あなたはお題を知りません。<br>マスターへの質問でお題を当ててください。
+                      お題は秘密です。<br>マスターにたくさん質問をしてお題を当てましょう。
                     </p>
                   </div>
                 `}
 
-                <p class="text-[11px] text-sub/70 pt-2 border-t border-line/60">もう一度タップで伏せます</p>
+                <p class="text-[11px] text-sub/70 pt-2 border-t border-line/60">もう一度タップすると伏せます</p>
               </div>
             `}
           </div>
@@ -378,12 +367,11 @@
         <div class="space-y-4">
           <div class="bg-card border border-line rounded-2xl p-6 card-shadow text-center space-y-4">
             <div class="space-y-1">
-              <span class="text-xs font-bold text-sub uppercase tracking-wider">Question Phase</span>
+              <span class="text-xs font-bold text-sub tracking-wider">質問タイム</span>
               <h2 class="text-base font-bold text-ink">マスターにお題を質問してください</h2>
               <p class="text-xs text-sub">回答は「はい」「いいえ」「分かりません」のみ</p>
             </div>
 
-            <!-- Timer Display -->
             <div class="bg-pastel-warm/60 border border-line rounded-2xl py-6 flex flex-col items-center justify-center space-y-3">
               <span id="timerText" class="text-6xl font-bold tracking-tight text-ink font-mono">${timeStr}</span>
               <div class="flex space-x-2">
@@ -396,13 +384,12 @@
               </div>
             </div>
 
-            <!-- Action buttons -->
             <div class="space-y-2 pt-2">
-              <button onclick="onWordGuessed()" class="w-full bg-pastel-yellow hover:bg-pastel-yellowHover text-ink font-bold py-3.5 rounded-2xl border border-line card-shadow transition btn-press text-base">
-                正解が出た！
+              <button onclick="onWordGuessed()" class="w-full bg-pastel-yellow hover:bg-pastel-yellowHover text-ink font-bold py-3.5 rounded-2xl border border-pastel-yellowBorder card-shadow transition btn-press text-base">
+                お題が正解された！
               </button>
               <button onclick="onTimeFail()" class="w-full bg-card hover:bg-pastel-warm text-sub font-semibold py-2.5 rounded-xl border border-line text-xs transition btn-press">
-                時間切れ（失敗）
+                時間切れ（正解できなかった）
               </button>
             </div>
           </div>
@@ -463,7 +450,7 @@
             <span class="text-base font-bold text-ink block">${state.currentWord}</span>
           </div>
 
-          <button onclick="renderSetup()" class="w-full bg-pastel-yellow hover:bg-pastel-yellowHover text-ink font-bold py-3.5 rounded-2xl border border-line card-shadow transition btn-press text-sm">
+          <button onclick="renderSetup()" class="w-full bg-pastel-yellow hover:bg-pastel-yellowHover text-ink font-bold py-3.5 rounded-2xl border border-pastel-yellowBorder card-shadow transition btn-press text-sm">
             もう一度遊ぶ
           </button>
         </div>
@@ -478,7 +465,7 @@
       container.innerHTML = `
         <div class="bg-card border border-line rounded-2xl p-6 card-shadow space-y-4">
           <div class="text-center space-y-1">
-            <span class="text-xs font-bold text-sub uppercase tracking-wider">Correct Guesser</span>
+            <span class="text-xs font-bold text-sub tracking-wider">正解者の記録</span>
             <h2 class="text-lg font-bold text-ink">誰がお題を当てましたか？</h2>
             <p class="text-xs text-sub">当てたプレイヤーを1人選択してください</p>
           </div>
@@ -501,26 +488,26 @@
     }
 
     function startGuesserVote() {
-      setStatus("投票 1");
+      setStatus("判定 1");
 
       container.innerHTML = `
         <div class="bg-card border border-line rounded-2xl p-6 card-shadow space-y-4">
           <div class="text-center space-y-1">
-            <span class="text-xs font-bold text-sub uppercase tracking-wider">Step 1: Check Guesser</span>
+            <span class="text-xs font-bold text-sub tracking-wider">判定 1</span>
             <h2 class="text-lg font-bold text-ink">${state.guesser} さんは<br>インサイダーですか？</h2>
             <p class="text-xs text-sub leading-relaxed">
-              会話で話し合い、せーので指差し等で決定してください。<br>過半数の結果を選択します。
+              会話で話し合い、せーので指差しなどで決定してください。<br>過半数の結果を選択します。
             </p>
           </div>
 
           <div class="grid grid-cols-2 gap-3 pt-2">
-            <button onclick="handleGuesserVote(true)" class="py-4 px-3 bg-pastel-orange hover:bg-pastel-orangeHover border border-line rounded-xl text-center transition btn-press">
+            <button onclick="handleGuesserVote(true)" class="py-4 px-3 bg-pastel-orange hover:bg-pastel-orangeHover border border-pastel-orangeBorder rounded-xl text-center transition btn-press">
               <span class="font-bold text-sm text-ink block">インサイダーだ</span>
-              <span class="text-[11px] text-sub block mt-1">過半数の判定</span>
+              <span class="text-[11px] text-sub block mt-1">過半数が疑っている</span>
             </button>
-            <button onclick="handleGuesserVote(false)" class="py-4 px-3 bg-pastel-yellow hover:bg-pastel-yellowHover border border-line rounded-xl text-center transition btn-press">
+            <button onclick="handleGuesserVote(false)" class="py-4 px-3 bg-pastel-yellow hover:bg-pastel-yellowHover border border-pastel-yellowBorder rounded-xl text-center transition btn-press">
               <span class="font-bold text-sm text-ink block">インサイダーではない</span>
-              <span class="text-[11px] text-sub block mt-1">庶民と判断</span>
+              <span class="text-[11px] text-sub block mt-1">無実（庶民）と判断</span>
             </button>
           </div>
         </div>
@@ -529,41 +516,39 @@
 
     function handleGuesserVote(votedAsInsider) {
       if (votedAsInsider) {
-        // Was the guesser actually the insider?
         const wasInsider = (state.roles[state.guesser] === 'INSIDER');
         renderFinalResult({
           suspect: state.guesser,
           wasSuspectInsider: wasInsider,
           commonsWon: wasInsider,
           reason: wasInsider
-            ? `お題を当てた ${state.guesser} さんはインサイダーでした。見破った庶民・マスターの勝利です。`
+            ? `お題を当てた ${state.guesser} さんはインサイダーでした。見破った庶民・マスターチームの勝利です。`
             : `お題を当てた ${state.guesser} さんは無実でした。インサイダーの勝利です。`
         });
       } else {
-        // Step 2: vote someone else
         startOtherVote();
       }
     }
 
     function startOtherVote() {
-      setStatus("投票 2");
+      setStatus("判定 2");
       const candidates = state.players.filter(p => p !== state.guesser);
 
       container.innerHTML = `
         <div class="bg-card border border-line rounded-2xl p-6 card-shadow space-y-4">
           <div class="text-center space-y-1">
-            <span class="text-xs font-bold text-sub uppercase tracking-wider">Step 2: Find Insider</span>
+            <span class="text-xs font-bold text-sub tracking-wider">判定 2</span>
             <h2 class="text-lg font-bold text-ink">インサイダーは誰ですか？</h2>
             <p class="text-xs text-sub leading-relaxed">
-              全員で話し合い、疑わしい人を指名してください。<br>同票の場合は、正解者 (${state.guesser}) の指名が優先されます。
+              話し合って最も怪しい人を指名してください。<br>※票数が同数になった場合は、お題を当てた人 (${state.guesser}) の指名が優先されます。
             </p>
           </div>
 
           <div class="space-y-2 py-2">
             ${candidates.map(c => `
-              <button onclick="evaluateFinalSuspect('${c}')" class="w-full text-left px-4 py-3 rounded-xl bg-pastel-warm/60 hover:bg-pastel-orange/50 border border-line flex justify-between items-center transition btn-press">
+              <button onclick="evaluateFinalSuspect('${c}')" class="w-full text-left px-4 py-3 rounded-xl bg-pastel-warm/60 hover:bg-pastel-orange/60 border border-line flex justify-between items-center transition btn-press">
                 <span class="font-bold text-sm text-ink">${c}</span>
-                <span class="text-xs text-sub font-medium">指名</span>
+                <span class="text-xs text-sub font-medium">指名する</span>
               </button>
             `).join('')}
           </div>
@@ -578,8 +563,8 @@
         wasSuspectInsider: wasInsider,
         commonsWon: wasInsider,
         reason: wasInsider
-          ? `最多指名の ${accusedPlayer} さんがインサイダーでした。庶民・マスターの勝利です。`
-          : `最多指名の ${accusedPlayer} さんはインサイダーではありませんでした。インサイダーの勝利です。`
+          ? `最多指名された ${accusedPlayer} さんがインサイダーでした。庶民・マスターチームの勝利です。`
+          : `最多指名された ${accusedPlayer} さんはインサイダーではありませんでした。インサイダーの勝利です。`
       });
     }
 
@@ -594,8 +579,8 @@
       container.innerHTML = `
         <div class="bg-card border border-line rounded-2xl p-6 card-shadow space-y-4 text-center">
           <div class="space-y-1">
-            <span class="text-xs font-bold uppercase tracking-wider ${commonsWon ? 'text-ink' : 'text-sub'}">
-              Result
+            <span class="text-xs font-bold uppercase tracking-wider text-sub">
+              結果発表
             </span>
             <h2 class="text-2xl font-black text-ink">
               ${commonsWon ? '庶民 ＆ マスター の勝利' : 'インサイダー の勝利'}
@@ -603,19 +588,18 @@
             <p class="text-xs text-sub pt-1 leading-relaxed">${reason}</p>
           </div>
 
-          <!-- Summary list -->
           <div class="bg-pastel-warm/60 border border-line rounded-xl p-4 text-left space-y-2.5 text-xs">
             <div class="flex justify-between items-center pb-1 border-b border-line/60">
-              <span class="text-sub">お題</span>
+              <span class="text-sub">正解のお題</span>
               <span class="font-bold text-sm text-ink">${state.currentWord}</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-sub">マスター</span>
-              <span class="font-bold text-ink">${gmPlayer}</span>
             </div>
             <div class="flex justify-between items-center">
               <span class="text-sub">インサイダー</span>
               <span class="font-bold text-ink">${insiderPlayer}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sub">ゲームマスター</span>
+              <span class="font-bold text-ink">${gmPlayer}</span>
             </div>
             <div class="flex justify-between items-center">
               <span class="text-sub">お題を当てた人</span>
@@ -624,11 +608,11 @@
           </div>
 
           <div class="pt-2 space-y-2">
-            <button onclick="startGame()" class="w-full bg-pastel-yellow hover:bg-pastel-yellowHover text-ink font-bold py-3.5 rounded-2xl border border-line card-shadow transition btn-press text-sm">
+            <button onclick="startGame()" class="w-full bg-pastel-yellow hover:bg-pastel-yellowHover text-ink font-bold py-3.5 rounded-2xl border border-pastel-yellowBorder card-shadow transition btn-press text-sm">
               同じメンバーで次のゲームへ
             </button>
             <button onclick="renderSetup()" class="w-full bg-pastel-warm hover:bg-pastel-active text-sub font-semibold py-2.5 rounded-xl border border-line text-xs transition btn-press">
-              設定に戻る
+              設定画面に戻る
             </button>
           </div>
         </div>
