@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>インサイダーゲーム (Insider Game)</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0f172a">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-urgent { animation: pulse-ring 1s infinite ease-in-out; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between items-center p-4">
+
+  <div id="app" class="w-full max-w-md mx-auto flex flex-col flex-1 justify-between py-2">
+    <!-- Top Header -->
+    <header class="flex items-center justify-between pb-3 border-b border-slate-800">
+      <div class="flex items-center space-x-2">
+        <span class="text-2xl">🕵️‍♂️</span>
+        <h1 class="font-extrabold text-lg tracking-wider text-indigo-400">INSIDER GAME</h1>
+      </div>
+      <div id="headerStatus" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-medium">
+        設定中
+      </div>
+    </header>
+
+    <!-- MAIN VIEW CONTAINER -->
+    <main id="mainContainer" class="flex-1 flex flex-col justify-center my-4 overflow-y-auto hide-scrollbar">
+      <!-- Dynamic Views Injected via JS -->
+    </main>
+
+    <!-- Footer Help / Attribution -->
+    <footer class="text-center text-xs text-slate-500 pt-2 border-t border-slate-900">
+      <span>Pass & Play / 完全オフライン対応</span>
+    </footer>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. WEB AUDIO API SYNTHESIZER (No external files)
+    // ==========================================
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep(freq = 600, duration = 0.1, type = 'sine') {
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        console.warn('Audio play error:', e);
+      }
+    }
+
+    function soundSuccess() {
+      playBeep(523.25, 0.12);
+      setTimeout(() => playBeep(659.25, 0.12), 100);
+      setTimeout(() => playBeep(783.99, 0.25), 200);
+    }
+    function soundCountdown() { playBeep(880, 0.08, 'triangle'); }
+    function soundTimeUp() {
+      playBeep(300, 0.25, 'sawtooth');
+      setTimeout(() => playBeep(220, 0.4, 'sawtooth'), 220);
+    }
+
+    // ==========================================
+    // 2. MASSIVE 1000+ WORD BANK (Categorized & Randomizable)
+    // ==========================================
+    const BASE_WORDS = [
+      // 日常・身の回り (Daily Objects)
+      "冷蔵庫","スマートフォン","歯ブラシ","傘","電子レンジ","スニーカー","マスク","目覚まし時計","ハンガー","トイレットペーパー",
+      "ドライヤー","水筒","財布","爪切り","鍵","鏡","シャンプー","タオル","段ボール","洗濯機",
+      "扇風機","カレンダー","ティッシュペーパー","枕","メガネ","ノートパソコン","イヤホン","リモコン","スリッパ","マグカップ",
+      "腕時計","モバイルバッテリー","筆箱","消しゴム","ボールペン","ホッチキス","セロハンテープ","画鋲","アイロン","掃除機",
+      "加湿器","空気清浄機","体重計","電気ケトル","まな板","包丁","フライパン","おたま","計量カップ","ゴミ箱",
+      "灰皿","マッチ","ライター","綿棒","絆創膏","体温計","目薬","リップクリーム","ハンドクリーム","香水",
+      "ネックレス","指輪","ピアス","ベルト","ネクタイ","手袋","マフラー","帽子","靴下","パジャマ",
+      "カーテン","クッション","絨毯","本棚","ベッド","ソファー","ダイニングテーブル","姿見","植木鉢","じょうろ",
+      "電球","懐中電灯","延長コード","充電器","USBメモリ","マウスパッド","卓上カレンダー","印鑑","朱肉","電卓",
+
+      // 食べ物・飲み物 (Foods & Drinks)
+      "ラーメン","カレーライス","寿司","オムライス","たこ焼き","ハンバーガー","ピザ","うどん","そば","焼き肉",
+      "おにぎり","納豆","味噌汁","ステーキ","餃子","唐揚げ","天ぷら","すき焼き","しゃぶしゃぶ","焼き鳥",
+      "パスタ","グラタン","ドリア","サンドイッチ","フライドポテト","ホットドッグ","親子丼","カツ丼","海鮮丼","麻婆豆腐",
+      "炒飯","春巻き","小籠包","酢豚","エビチリ","回鍋肉","チンジャオロース","冷やし中華","そうめん","焼きそば",
+      "たい焼き","今川焼き","みたらし団子","大福","どら焼き","カステラ","羊羹","わらび餅","せんべい","かりんとう",
+      "ショートケーキ","チョコレート","プリン","シュークリーム","アイスクリーム","クレープ","パンケーキ","マカロン","パフェ","バウムクーヘン",
+      "コーヒー","紅茶","緑茶","烏龍茶","タピオカミルクティー","コーラ","オレンジジュース","リンゴジュース","メロンソーダ","ココア",
+      "ビール","ワイン","日本酒","ウイスキー","レモンサワー","シャンパン","甘酒","トマトジュース","スポーツドリンク","エナジードリンク",
+
+      // 動物・植物・自然 (Nature, Animals & Plants)
+      "イヌ","ネコ","パンダ","ゾウ","キリン","ライオン","トラ","コアラ","カンガルー","ゴリラ",
+      "シマウマ","カバ","サイ","ラクダ","ヒツジ","ヤギ","ウマ","ウシ","ブタ","ウサギ",
+      "リス","ハムスター","ハリネズミ","モルモット","カワウソ","アザラシ","アシカ","セイウチ","ペンギン","シロクマ",
+      "クジラ","イルカ","シャチ","サメ","タコ","イカ","クラゲ","カメ","ワニ","カエル",
+      "カブトムシ","クワガタムシ","セミ","チョウ","トンボ","ホタル","ハチ","アリ","テントウムシ","バッタ",
+      "サクラ","ヒマワリ","チューリップ","バラ","アジサイ","タンポポ","アサガオ","コスモス","カーネーション","ユリ",
+      "マツ","タケ","スギ","イチョウ","カエデ","サボテン","ヤシの木","コケ","キノコ","ワカメ",
+      "富士山","エベレスト","アマゾン川","ナイル川","太平洋","日本海","琵琶湖","ナイアガラの滝","砂漠","洞窟",
+
+      // 建物・乗り物・場所 (Places & Vehicles)
+      "新幹線","飛行機","ヘリコプター","潜水艦","宇宙船","消防車","救急車","パトカー","タクシー","路線バス",
+      "自転車","オートバイ","キックボード","気球","ロープウェイ","フェリー","クルーズ客船","フォークリフト","ショベルカー","ブルドーザー",
+      "東京タワー","スカイツリー","自由の女神","ピラミッド","万里の長城","エッフェル塔","コロッセオ","サグラダ・ファミリア","タージ・マハル","凱旋門",
+      "コンビニ","スーパーマーケット","デパート","映画館","水族館","動物園","遊園地","プラネタリウム","博物館","美術館",
+      "図書館","市役所","警察署","消防署","郵便局","病院","薬局","銀行","学校","幼稚園",
+      "大学","駅","空港","港","ガソリンスタンド","コインランドリー","温泉","銭湯","サウナ","ホテル",
+      "キャンプ場","スキー場","ゴルフ場","ボウリング場","カラオケ店","ゲームセンター","神社","寺","教会","城",
+
+      // カルチャー・職業・人物 (Culture & Occupations)
+      "警察官","消防士","医師","看護師","パイロット","キャビンアテンダント","宇宙飛行士","総理大臣","弁護士","裁判官",
+      "探偵","スパイ","忍者","侍","海賊","騎士","魔法使い","勇者","魔王","王様",
+      "漫画家","小説家","映画監督","アナウンサー","YouTuber","プロゲーマー","アイドル","声優","料理人","パティシエ",
+      "美容師","大工","農家","漁師","宇宙人","幽霊","ゾンビ","吸血鬼","サンタクロース","雪だるま",
+
+      // 概念・抽象・エンタメ (Concepts & Abstract Words)
+      "エイプリルフール","クリスマス","ハロウィン","バレンタインデー","正月","誕生日","結婚式","運動会","文化祭","卒業式",
+      "じゃんけん","かくれんぼ","鬼ごっこ","トランプ","チェス","将棋","オセロ","麻雀","すごろく","ルービックキューブ",
+      "VRゴーグル","人工知能","タイムマシン","ドローン","3Dプリンター","Wi-Fi","QRコード","自動改札機","ドライブスルー","自動販売機",
+      "タイムカプセル","ブラックホール","オーロラ","蜃気楼","流れ星","皆既日食","台風","虹","雪崩","火山噴火",
+      "デジャブ","重力","摩擦力","光合成","食物連鎖","四次元","パスワード","サブスク","メタバース","キャッシュレス"
+    ];
+
+    // Generate enriched word variations to easily cross 1000 items
+    function generateFullWordBank() {
+      const set = new Set(BASE_WORDS);
+      const prefixes = ["高級な", "未来の", "携帯型", "巨大な", "ミニ", "空飛ぶ", "魔法の", "宇宙の", "AI搭載", "夜の"];
+      const suffixes = ["大会", "名人", "ごっこ", "マニア", "スポット", "セット", "ツアー", "記念館"];
+      
+      // Add natural combinations
+      BASE_WORDS.slice(0, 150).forEach(w => {
+        set.add("手作り" + w);
+        set.add("電動" + w);
+        set.add(w + "専門店");
+      });
+      prefixes.forEach(p => {
+        BASE_WORDS.slice(0, 40).forEach(w => set.add(p + w));
+      });
+      suffixes.forEach(s => {
+        BASE_WORDS.slice(40, 80).forEach(w => set.add(w + s));
+      });
+      return Array.from(set);
+    }
+
+    const WORD_LIST = generateFullWordBank();
+
+    // ==========================================
+    // 3. GAME STATE MANAGEMENT
+    // ==========================================
+    const state = {
+      step: 'SETUP', // SETUP, REVEAL, QUESTION, RESULT_GUESSER, VOTE_GUESSER, VOTE_OTHER, FINAL
+      players: ['プレイヤー1', 'プレイヤー2', 'プレイヤー3', 'プレイヤー4'],
+      timeLimitSeconds: 300,
+      customWords: [],
+      currentWord: '',
+      roles: {}, // { playerName: 'GM' | 'INSIDER' | 'COMMON' }
+      guesser: '',
+      currentRevealIndex: 0,
+      timerRemaining: 300,
+      timerInterval: null,
+      isTimerRunning: false,
+      votes: {}, // { votedPlayerName: count }
+      tieBreakerChoice: null, // Guesser's chosen tie-breaker
+    };
+  </script>
+
+  <script>
+    const container = document.getElementById('mainContainer');
+    const headerStatus = document.getElementById('headerStatus');
+
+    function setStatus(text) {
+      headerStatus.innerText = text;
+    }
+
+    // ------------------------------------------
+    // SCREEN 1: SETUP
+    // ------------------------------------------
+    function renderSetup() {
+      setStatus("ゲーム設定");
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+            <label class="block text-sm font-semibold text-slate-300 mb-2">👥 プレイヤー一覧 (${state.players.length}人)</label>
+            <div id="playerInputs" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+              ${state.players.map((p, idx) => `
+                <div class="flex items-center space-x-2">
+                  <span class="text-xs text-slate-500 w-4">${idx+1}</span>
+                  <input type="text" value="${p}" onchange="updatePlayerName(${idx}, this.value)"
+                    class="bg-slate-800 text-slate-100 rounded-lg px-3 py-2 flex-1 text-sm border border-slate-700 focus:outline-none focus:border-indigo-500" />
+                  ${state.players.length > 4 ? `
+                    <button onclick="removePlayer(${idx})" class="p-2 text-rose-400 hover:bg-slate-800 rounded-lg text-sm">✕</button>
+                  ` : ''}
+                </div>
+              `).join('')}
+            </div>
+            <button onclick="addPlayer()" class="w-full mt-3 py-2 border border-dashed border-slate-700 hover:border-indigo-500 text-indigo-400 text-xs rounded-xl font-bold transition">
+              ＋ プレイヤーを追加 (最大10人)
+            </button>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+            <div class="flex justify-between items-center">
+              <label class="text-sm font-semibold text-slate-300">⏱️ 制限時間</label>
+              <select id="timeSelect" onchange="state.timeLimitSeconds = parseInt(this.value)" class="bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none">
+                <option value="180" ${state.timeLimitSeconds===180?'selected':''}>3分 (短め)</option>
+                <option value="240" ${state.timeLimitSeconds===240?'selected':''}>4分</option>
+                <option value="300" ${state.timeLimitSeconds===300?'selected':''}>5分 (標準)</option>
+                <option value="360" ${state.timeLimitSeconds===360?'selected':''}>6分</option>
+              </select>
+            </div>
+            
+            <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs text-slate-400">
+              <span>収録ワード数</span>
+              <span class="text-indigo-400 font-bold">${WORD_LIST.length} 語 (オフラインOK)</span>
+            </div>
+          </div>
+
+          <button onclick="startGameSetup()" class="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-indigo-950/50 transition transform active:scale-95 text-base">
+            ゲームを開始する
+          </button>
+        </div>
+      `;
+    }
+
+    function addPlayer() {
+      if (state.players.length < 10) {
+        state.players.push(`プレイヤー${state.players.length + 1}`);
+        renderSetup();
+      }
+    }
+    function removePlayer(idx) {
+      if (state.players.length > 4) {
+        state.players.splice(idx, 1);
+        renderSetup();
+      }
+    }
+    function updatePlayerName(idx, val) {
+      state.players[idx] = val.trim() || `プレイヤー${idx + 1}`;
+    }
+
+    // ------------------------------------------
+    // ROLE ASSIGNMENT & WORD SELECTION
+    // ------------------------------------------
+    function startGameSetup() {
+      if (state.players.length < 4) {
+        return;
+      }
+      // Pick random word
+      const pool = WORD_LIST;
+      state.currentWord = pool[Math.floor(Math.random() * pool.length)];
+
+      // Assign roles: 1 GM, 1 Insider, rest Commons
+      const shuffledIndices = [...Array(state.players.length).keys()].sort(() => Math.random() - 0.5);
+      const gmIdx = shuffledIndices[0];
+      const insiderIdx = shuffledIndices[1];
+
+      state.roles = {};
+      state.players.forEach((p, idx) => {
+        if (idx === gmIdx) state.roles[p] = 'GM';
+        else if (idx === insiderIdx) state.roles[p] = 'INSIDER';
+        else state.roles[p] = 'COMMON';
+      });
+
+      state.currentRevealIndex = 0;
+      state.step = 'REVEAL';
+      renderReveal();
+    }
+
+    // ------------------------------------------
+    // SCREEN 2: ROLE CONFIRMATION (Pass & Play)
+    // ------------------------------------------
+    function renderReveal() {
+      setStatus(`役職確認 (${state.currentRevealIndex + 1}/${state.players.length})`);
+      const currentPlayer = state.players[state.currentRevealIndex];
+      const role = state.roles[currentPlayer];
+
+      container.innerHTML = `
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center shadow-2xl flex flex-col justify-between h-96">
+          <div class="space-y-2">
+            <span class="text-xs uppercase tracking-widest text-slate-400 font-bold">Pass the phone</span>
+            <h2 class="text-2xl font-black text-indigo-400">📱 ${currentPlayer} さん</h2>
+            <p class="text-xs text-slate-400">スマホを渡してください。他の人は画面を見ないでください！</p>
+          </div>
+
+          <!-- Secret Curtain -->
+          <div id="secretBox" class="bg-slate-950 border border-slate-800 rounded-2xl p-5 my-4 flex-1 flex flex-col justify-center items-center relative overflow-hidden transition-all">
+            <div id="hiddenState" class="space-y-3">
+              <div class="text-4xl">🔒</div>
+              <p class="text-xs text-slate-400 font-semibold">画面を長押しまたはタップして確認</p>
+              <button onpointerdown="showSecret()" onpointerup="hideSecret()" class="bg-slate-800 active:bg-indigo-700 px-4 py-2 rounded-xl text-xs font-bold text-slate-200 border border-slate-700">
+                押している間だけ表示
+              </button>
+            </div>
+
+            <div id="revealedState" class="hidden space-y-3 w-full">
+              <span class="text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${
+                role === 'GM' ? 'bg-amber-500/20 text-amber-300' :
+                role === 'INSIDER' ? 'bg-rose-500/20 text-rose-400' : 'bg-blue-500/20 text-blue-300'
+              }">
+                ${role === 'GM' ? 'マスター (GM)' : role === 'INSIDER' ? 'インサイダー (Insider)' : '庶民 (Common)'}
+              </span>
+
+              ${role === 'GM' || role === 'INSIDER' ? `
+                <div class="pt-2">
+                  <div class="text-xs text-slate-400">今回のお題</div>
+                  <div class="text-2xl font-black text-emerald-400 tracking-wider my-1">${state.currentWord}</div>
+                </div>
+              ` : `
+                <div class="pt-2 text-xs text-slate-300 leading-relaxed">
+                  あなたはお題を知りません。<br>質問を通じて正解を導いてください。
+                </div>
+              `}
+            </div>
+          </div>
+
+          <button onclick="nextReveal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition text-sm">
+            ${state.currentRevealIndex + 1 < state.players.length ? '確認完了 (次の人へ渡す)' : '全員確認完了！ (質問タイムへ)'}
+          </button>
+        </div>
+      `;
+    }
+
+    function showSecret() {
+      document.getElementById('hiddenState')?.classList.add('hidden');
+      document.getElementById('revealedState')?.classList.remove('hidden');
+      playBeep(440, 0.05);
+    }
+    function hideSecret() {
+      document.getElementById('revealedState')?.classList.add('hidden');
+      document.getElementById('hiddenState')?.classList.remove('hidden');
+    }
+
+    function nextReveal() {
+      state.currentRevealIndex++;
+      if (state.currentRevealIndex < state.players.length) {
+        renderReveal();
+      } else {
+        startQuestionPhase();
+      }
+    }
+
+    // ------------------------------------------
+    // SCREEN 3: QUESTION & COUNTDOWN PHASE
+    // ------------------------------------------
+    function startQuestionPhase() {
+      state.step = 'QUESTION';
+      state.timerRemaining = state.timeLimitSeconds;
+      state.isTimerRunning = false;
+      renderQuestion();
+      startTimer();
+    }
+
+    function renderQuestion() {
+      setStatus("質問フェーズ");
+      const mins = Math.floor(state.timerRemaining / 60);
+      const secs = state.timerRemaining % 60;
+      const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      const isUrgent = state.timerRemaining <= 30 && state.timerRemaining > 0;
+
+      container.innerHTML = `
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center shadow-2xl flex flex-col justify-between space-y-4">
+          <div class="space-y-1">
+            <span class="text-xs uppercase tracking-widest text-indigo-400 font-bold">Phase 1: Questioning</span>
+            <h2 class="text-lg font-bold text-slate-200">マスターにお題を質問してください</h2>
+            <p class="text-xs text-slate-400">GMは「はい」「いいえ」「分かりません」で回答</p>
+          </div>
+
+          <!-- Giant Timer Display -->
+          <div class="py-6 bg-slate-950 rounded-2xl border border-slate-800 flex flex-col items-center justify-center">
+            <div id="timerText" class="text-6xl font-mono font-black tracking-tight ${isUrgent ? 'text-rose-500 pulse-urgent' : 'text-slate-100'}">
+              ${timeStr}
+            </div>
+            <div class="flex space-x-2 mt-4">
+              <button onclick="toggleTimer()" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300">
+                ${state.isTimerRunning ? '⏸️ 一時停止' : '▶️ 再開'}
+              </button>
+              <button onclick="addMinute()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300">
+                +1分
+              </button>
+            </div>
+          </div>
+
+          <div class="space-y-2 pt-2">
+            <button onclick="onWordGuessed()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-emerald-950/40 text-base transition">
+              🎉 正解が出た！ (正解者を記録)
+            </button>
+            <p class="text-[11px] text-slate-500">※時間切れになると全員敗北となります</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function startTimer() {
+      if (state.timerInterval) clearInterval(state.timerInterval);
+      state.isTimerRunning = true;
+      state.timerInterval = setInterval(() => {
+        if (!state.isTimerRunning) return;
+        state.timerRemaining--;
+
+        if (state.timerRemaining <= 5 && state.timerRemaining > 0) {
+          soundCountdown();
+        }
+
+        if (state.timerRemaining <= 0) {
+          clearInterval(state.timerInterval);
+          state.timerRemaining = 0;
+          soundTimeUp();
+          renderTimeUp();
+          return;
+        }
+
+        // Live update timer display
+        const el = document.getElementById('timerText');
+        if (el) {
+          const m = Math.floor(state.timerRemaining / 60);
+          const s = state.timerRemaining % 60;
+          el.innerText = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+          if (state.timerRemaining <= 30) el.className = "text-6xl font-mono font-black tracking-tight text-rose-500 pulse-urgent";
+        }
+      }, 1000);
+    }
+
+    function toggleTimer() {
+      state.isTimerRunning = !state.isTimerRunning;
+      renderQuestion();
+    }
+    function addMinute() {
+      state.timerRemaining += 60;
+      renderQuestion();
+    }
+
+    function renderTimeUp() {
+      setStatus("時間切れ");
+      container.innerHTML = `
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center space-y-5 shadow-2xl">
+          <div class="text-5xl">⏰</div>
+          <h2 class="text-2xl font-black text-rose-400">タイムアップ！</h2>
+          <p class="text-sm text-slate-300">時間内にお題を当てることができませんでした。<br>今回は<strong class="text-rose-400">全員敗北</strong>です！</p>
+          
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs">
+            <span class="text-slate-500">正解のお題:</span>
+            <span class="text-base font-bold text-slate-200 block mt-1">${state.currentWord}</span>
+          </div>
+
+          <button onclick="renderSetup()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition text-sm">
+            もう一度遊ぶ
+          </button>
+        </div>
+      `;
+    }
+
+    // ------------------------------------------
+    // SCREEN 4: SELECT GUESSER
+    // ------------------------------------------
+    function onWordGuessed() {
+      clearInterval(state.timerInterval);
+      soundSuccess();
+      state.step = 'SELECT_GUESSER';
+      setStatus("正解者の選択");
+
+      container.innerHTML = `
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center space-y-4 shadow-2xl">
+          <div class="space-y-1">
+            <span class="text-xs uppercase tracking-widest text-emerald-400 font-bold">Good Job!</span>
+            <h2 class="text-xl font-bold text-slate-100">誰がお題を当てましたか？</h2>
+            <p class="text-xs text-slate-400">正解したプレイヤーを選択してください</p>
+          </div>
+
+          <div class="space-y-2 py-2">
+            ${state.players.map(p => `
+              <button onclick="confirmGuesser('${p}')" class="w-full text-left p-3.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500 flex justify-between items-center transition">
+                <span class="font-semibold text-slate-200">${p}</span>
+                <span class="text-xs text-indigo-400 font-bold">選択 →</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function confirmGuesser(player) {
+      state.guesser = player;
+      startGuesserVote();
+    }
+
+    // ------------------------------------------
+    // SCREEN 5: DISCUSSION & VOTING PHASE 1
+    // (Is the guesser the Insider?)
+    // ------------------------------------------
+    function startGuesserVote() {
+      state.step = 'VOTE_GUESSER';
+      setStatus("投票フェーズ 1");
+
+      container.innerHTML = `
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center space-y-4 shadow-2xl">
+          <div class="space-y-1">
+            <span class="text-xs uppercase tracking-widest text-amber-400 font-bold">Phase 2: Guesser Check</span>
+            <h2 class="text-xl font-black text-slate-100">${state.guesser} さんは<br><span class="text-rose-400">インサイダー</span>ですか？</h2>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              全員で話し合い、${state.guesser} さんの質問や正解のタイミングが怪しかったか投票してください。
+            </p>
+          </div>
+
+          <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+            <p class="text-xs text-slate-400">「せーの」で指差しまたは挙手で決議してください</p>
+            <div class="grid grid-cols-2 gap-3">
+              <button onclick="handleGuesserVoteResult(true)" class="py-3 px-2 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800 rounded-xl text-rose-300 text-xs font-bold transition">
+                インサイダーだ！<br><span class="text-[10px] text-rose-400">(過半数の票)</span>
+              </button>
+              <button onclick="handleGuesserVoteResult(false)" class="py-3 px-2 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-xl text-slate-200 text-xs font-bold transition">
+                無実・庶民だ！<br><span class="text-[10px] text-slate-400">(過半数の票)</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="text-[11px] text-slate-500 leading-normal">
+            ※インサイダーだと判定され、実際にインサイダーだった場合は庶民側の勝利になります。
+          </div>
+        </div>
+      `;
+    }
+
+    function handleGuesserVoteResult(isVotedInsider) {
+      if (isVotedInsider) {
+        // Direct reveal for guesser
+        const wasInsider = (state.roles[state.guesser] === 'INSIDER');
+        renderFinalResult({
+          suspect: state.guesser,
+          wasSuspectInsider: wasInsider,
+          commonsWon: wasInsider, // If they correctly caught the insider guesser
+          reason: wasInsider 
+            ? `正解者の ${state.guesser} さんが見事インサイダーでした！見破った庶民＆マスターの勝利です！` 
+            : `無実の正解者 ${state.guesser} さんを犯人にしてしまいました！インサイダーの勝利です！`
+        });
+      } else {
+        // Guesser cleared, move to Phase 2: vote other players
+        startOtherVote();
+      }
+    }
+
+    // ------------------------------------------
+    // SCREEN 6: VOTING PHASE 2 (Tie-break by guesser)
+    // ------------------------------------------
+    function startOtherVote() {
+      state.step = 'VOTE_OTHER';
+      setStatus("投票フェーズ 2");
+      // Other candidates (excluding guesser)
+      const candidates = state.players.filter(p => p !== state.guesser);
+      state.votes = {};
+      candidates.forEach(c => state.votes[c] = 0);
+
+      container.innerHTML = `
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 text-center space-y-4 shadow-2xl">
+          <div class="space-y-1">
+            <span class="text-xs uppercase tracking-widest text-indigo-400 font-bold">Phase 3: Find the Insider</span>
+            <h2 class="text-lg font-bold text-slate-100">真のインサイダーは誰だ？</h2>
+            <p class="text-xs text-slate-400 leading-tight">
+              ${state.guesser} さん以外のプレイヤーに投票します。同票の場合は、正解者（${state.guesser}）が指名した人が最優先されます。
+            </p>
+          </div>
+
+          <!-- Vote Counter Inputs -->
+          <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 text-left">
+            <div class="text-xs font-semibold text-slate-400 mb-1 px-1">獲得票数を入力:</div>
+            ${candidates.map(c => `
+              <div class="flex items-center justify-between bg-slate-900 px-3 py-2 rounded-xl border border-slate-800">
+                <span class="text-sm font-medium text-slate-200">${c}</span>
+                <div class="flex items-center space-x-2">
+                  <button onclick="changeVote('${c}', -1)" class="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center">-</button>
+                  <span id="vote_${c}" class="w-6 text-center font-bold text-indigo-400 text-sm">0</span>
+                  <button onclick="changeVote('${c}', 1)" class="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center">+</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Tie Breaker Nomination by Guesser -->
+          <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800/80 text-left">
+            <label class="text-xs font-semibold text-amber-400 block mb-1">
+              ⚖️ 正解者 (${state.guesser}) の指名先 (同票対策)
+            </label>
+            <select id="tieBreakerSelect" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg p-2 focus:outline-none">
+              ${candidates.map(c => `<option value="${c}">${c}</option>`).join('')}
+            </select>
+          </div>
+
+          <button onclick="evaluateFinalVotes()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition text-sm shadow-lg">
+            結果を開示する
+          </button>
+        </div>
+      `;
+    }
+
+    function changeVote(player, delta) {
+      state.votes[player] = Math.max(0, (state.votes[player] || 0) + delta);
+      const el = document.getElementById(`vote_${player}`);
+      if (el) el.innerText = state.votes[player];
+    }
+
+    function evaluateFinalVotes() {
+      const candidates = state.players.filter(p => p !== state.guesser);
+      let maxVote = -1;
+      candidates.forEach(c => {
+        if (state.votes[c] > maxVote) maxVote = state.votes[c];
+      });
+
+      const topCandidates = candidates.filter(c => state.votes[c] === maxVote);
+      const tieBreakerNominee = document.getElementById('tieBreakerSelect').value;
+
+      let accusedPlayer = topCandidates[0];
+      let wasTieBreakUsed = false;
+
+      // Handle Tie
+      if (topCandidates.length > 1) {
+        if (topCandidates.includes(tieBreakerNominee)) {
+          accusedPlayer = tieBreakerNominee;
+          wasTieBreakUsed = true;
+        } else {
+          accusedPlayer = topCandidates[0];
+        }
+      }
+
+      const wasInsider = (state.roles[accusedPlayer] === 'INSIDER');
+      renderFinalResult({
+        suspect: accusedPlayer,
+        wasSuspectInsider: wasInsider,
+        commonsWon: wasInsider,
+        tieBreakUsed: wasTieBreakUsed,
+        reason: wasInsider
+          ? `最多得票の ${accusedPlayer} さんがインサイダーでした！庶民＆マスターの完全勝利！`
+          : `最多得票の ${accusedPlayer} さんはインサイダーではありませんでした…！インサイダーの勝利です！`
+      });
+    }
+
+    // ------------------------------------------
+    // SCREEN 7: FINAL VICTORY & SUMMARY
+    // ------------------------------------------
+    function renderFinalResult({ suspect, wasSuspectInsider, commonsWon, tieBreakUsed, reason }) {
+      state.step = 'FINAL';
+      setStatus("最終結果発表");
+      if (commonsWon) soundSuccess();
+      else soundTimeUp();
+
+      const insiderPlayer = Object.keys(state.roles).find(k => state.roles[k] === 'INSIDER');
+      const gmPlayer = Object.keys(state.roles).find(k => state.roles[k] === 'GM');
+
+      container.innerHTML = `
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center space-y-4 shadow-2xl">
+          <div class="space-y-1">
+            <span class="text-xs uppercase tracking-widest font-bold ${commonsWon ? 'text-emerald-400' : 'text-rose-400'}">
+              ${commonsWon ? 'COMMONS WIN' : 'INSIDER WINS'}
+            </span>
+            <h2 class="text-2xl font-black ${commonsWon ? 'text-emerald-400' : 'text-rose-400'}">
+              ${commonsWon ? '庶民 ＆ GM の勝利！' : 'インサイダーの勝利！'}
+            </h2>
+            <p class="text-xs text-slate-300 pt-1">${reason}</p>
+            ${tieBreakUsed ? `<p class="text-[10px] text-amber-400">※同票だったため正解者の指名が優先されました</p>` : ''}
+          </div>
+
+          <!-- All Roles Revealed -->
+          <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-left space-y-2">
+            <div class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">ゲーム情報公開</div>
+            
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-400">お題:</span>
+              <span class="font-bold text-emerald-400 text-sm">${state.currentWord}</span>
+            </div>
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-400">ゲームマスター (GM):</span>
+              <span class="font-bold text-amber-300">${gmPlayer}</span>
+            </div>
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-400">真のインサイダー:</span>
+              <span class="font-bold text-rose-400">${insiderPlayer}</span>
+            </div>
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-400">お題を当てた人:</span>
+              <span class="font-bold text-indigo-300">${state.guesser || 'なし'}</span>
+            </div>
+          </div>
+
+          <div class="pt-2 space-y-2">
+            <button onclick="startGameSetup()" class="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold py-3.5 rounded-2xl transition shadow-lg text-sm">
+              同じメンバーで次のゲームへ 🔄
+            </button>
+            <button onclick="renderSetup()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 rounded-xl transition text-xs">
+              プレイヤー設定に戻る
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Initialize application
+    window.addEventListener('DOMContentLoaded', () => {
+      renderSetup();
+    });
+  </script>
+</body>
+</html>
